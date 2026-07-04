@@ -4,9 +4,10 @@ const FLAGS = [
 ].map(([code, name]) => ({ code, name, emoji: flagEmoji(code) }));
 
 const $ = (id) => document.getElementById(id);
-const setup = $('setup'), game = $('game'), results = $('results');
+const setup = $('setup'), challenge = $('challenge'), game = $('game'), results = $('results');
 const input1 = $('flag1'), input2 = $('flag2');
 let selected = [], currentAnswer = 0, question = 0, score = 0, startTime = 0, timerId = null, accepting = false;
+let lastResult = null;
 
 function flagEmoji(code) {
   return code.toUpperCase().replace(/./g, char => String.fromCodePoint(127397 + char.charCodeAt(0)));
@@ -41,12 +42,86 @@ function validateSelection() {
   return '';
 }
 
+function setHashForFlags() {
+  const params = new URLSearchParams();
+  params.set('flags', selected.map(f => f.code).join('-'));
+  history.replaceState(null, '', `#${params.toString()}`);
+}
+
+
+function shareUrl() {
+  const params = new URLSearchParams();
+  params.set('flags', selected.map(f => f.code).join('-'));
+  return `${window.location.origin}${window.location.pathname}#${params.toString()}`;
+}
+
+function showSetup() {
+  challenge.classList.add('hidden');
+  results.classList.add('hidden');
+  game.classList.add('hidden');
+  setup.classList.remove('hidden');
+  if (selected.length === 2) setHashForFlags();
+}
+
+function shareText() {
+  if (!lastResult) return shareUrl();
+  const [a, b] = selected;
+  return `I scored ${lastResult.score}/10 (${lastResult.percent}%) in ${lastResult.time}s on Flash Flag: ${a.emoji} ${a.name} vs ${b.emoji} ${b.name}
+${shareUrl()}`;
+}
+
+async function copyResults() {
+  const text = shareText();
+  try {
+    await navigator.clipboard.writeText(text);
+    $('copyStatus').textContent = 'Copied!';
+  } catch {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    textarea.remove();
+    $('copyStatus').textContent = 'Copied!';
+  }
+}
+
+function showChallenge() {
+  const [a, b] = selected;
+  setup.classList.add('hidden');
+  game.classList.add('hidden');
+  results.classList.add('hidden');
+  challenge.classList.remove('hidden');
+  $('challengeTitle').textContent = `${a.name} vs ${b.name}`;
+  $('challengeFlag1').textContent = a.emoji;
+  $('challengeFlag2').textContent = b.emoji;
+}
+
+function applyHash() {
+  if (!location.hash) return;
+  const params = new URLSearchParams(location.hash.slice(1));
+  const [code1, code2] = (params.get('flags') || '').split('-');
+  const f1 = FLAGS.find(f => f.code === code1?.toUpperCase());
+  const f2 = FLAGS.find(f => f.code === code2?.toUpperCase());
+  if (!f1 || !f2 || f1.code === f2.code) return;
+
+  input1.value = optionText(f1);
+  input2.value = optionText(f2);
+  selected = [f1, f2];
+  updateChosen();
+  showChallenge();
+}
+
 function startGame() {
   const error = validateSelection();
   $('setupError').textContent = error;
   if (error) return;
 
+  setHashForFlags();
   setup.classList.add('hidden');
+  challenge.classList.add('hidden');
   results.classList.add('hidden');
   game.classList.remove('hidden');
   question = 0;
@@ -108,24 +183,35 @@ function playTone(correct) {
   osc.stop(ctx.currentTime + (correct ? 0.11 : 0.24));
 }
 
+function showResults(resultScore, elapsed) {
+  const percent = Math.round((resultScore / 10) * 100);
+  lastResult = { score: resultScore, percent, time: elapsed.toFixed(1) };
+  setup.classList.add('hidden');
+  challenge.classList.add('hidden');
+  game.classList.add('hidden');
+  results.classList.remove('hidden');
+  $('percent').textContent = `${percent}%`;
+  $('finalScore').textContent = `${resultScore}/10`;
+  $('finalTime').textContent = `${elapsed.toFixed(1)}s`;
+  $('shareUrl').textContent = shareUrl();
+  $('copyStatus').textContent = '';
+}
+
 function finishGame() {
   clearInterval(timerId);
   const elapsed = (performance.now() - startTime) / 1000;
-  game.classList.add('hidden');
-  results.classList.remove('hidden');
-  $('percent').textContent = `${Math.round((score / 10) * 100)}%`;
-  $('finalScore').textContent = `${score}/10`;
-  $('finalTime').textContent = `${elapsed.toFixed(1)}s`;
+  setHashForFlags();
+  showResults(score, elapsed);
 }
 
 populateDatalist();
 [input1, input2].forEach(input => input.addEventListener('input', updateChosen));
 $('startBtn').addEventListener('click', startGame);
+$('challengeStartBtn').addEventListener('click', startGame);
 $('againBtn').addEventListener('click', startGame);
-$('changeBtn').addEventListener('click', () => {
-  results.classList.add('hidden');
-  setup.classList.remove('hidden');
-});
+$('copyBtn').addEventListener('click', copyResults);
+$('challengeChangeBtn').addEventListener('click', showSetup);
+$('changeBtn').addEventListener('click', showSetup);
 $('answer1').addEventListener('click', () => answer(0));
 $('answer2').addEventListener('click', () => answer(1));
 document.addEventListener('keydown', (event) => {
@@ -133,3 +219,4 @@ document.addEventListener('keydown', (event) => {
   if (event.key === '1') answer(0);
   if (event.key === '2') answer(1);
 });
+applyHash();
