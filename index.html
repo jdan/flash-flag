@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flash Flag</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app">
+    <section id="setup" class="card">
+      <p class="eyebrow">Flash Flag</p>
+      <h1>Practice telling similar flags apart</h1>
+      <p class="hint">Pick two flags, start a 10-question round, then answer with <kbd>1</kbd> or <kbd>2</kbd>.</p>
+
+      <div class="picker-grid">
+        <label>
+          <span>Flag 1</span>
+          <input id="flag1" list="flags" autocomplete="off" placeholder="Type a country, e.g. Indonesia" />
+        </label>
+        <label>
+          <span>Flag 2</span>
+          <input id="flag2" list="flags" autocomplete="off" placeholder="Type a country, e.g. Monaco" />
+        </label>
+      </div>
+      <datalist id="flags"></datalist>
+
+      <div class="chosen" aria-live="polite">
+        <div id="chosen1" class="chosen-flag muted">?</div>
+        <div class="vs">vs</div>
+        <div id="chosen2" class="chosen-flag muted">?</div>
+      </div>
+
+      <p id="setupError" class="error" role="alert"></p>
+      <button id="startBtn" class="primary">Start game</button>
+    </section>
+
+    <section id="game" class="card hidden">
+      <div class="topbar">
+        <div>Question <strong id="questionNo">1</strong>/10</div>
+        <div>Correct <strong id="score">0</strong></div>
+        <div>Time <strong id="timer">0.0s</strong></div>
+      </div>
+
+      <div id="promptFlag" class="prompt-flag" aria-label="flag to identify"></div>
+
+      <div class="answers">
+        <button id="answer1" class="answer" data-answer="0"></button>
+        <button id="answer2" class="answer" data-answer="1"></button>
+      </div>
+      <p class="hint center">Press <kbd>1</kbd> or <kbd>2</kbd>.</p>
+      <p id="feedback" class="feedback" aria-live="polite"></p>
+    </section>
+
+    <section id="results" class="card hidden">
+      <p class="eyebrow">Round complete</p>
+      <h1 id="percent">0%</h1>
+      <p class="result-line"><strong id="finalScore">0/10</strong> correct in <strong id="finalTime">0.0s</strong></p>
+      <button id="againBtn" class="primary">Play again</button>
+      <button id="changeBtn" class="secondary">Choose different flags</button>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
